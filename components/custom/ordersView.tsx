@@ -31,12 +31,14 @@ import RemoveAlert from "./removeDialog";
 // Internal types & helpers
 import { Order } from "@/lib/orders-types";
 import { formatDate } from "@/lib/helpers";
+import { AddOrderDialog } from "./addOrderModal";
 
 export function OrdersView() {
   const [loading, setLoading] = useState(true);
 
   // Data
   const [orders, setOrders] = useState<Order[]>([]);
+  const [allElementsFound, setAllElementsFound] = useState(0);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [elementsPerPage, setElementsPerPage] = useState<number>(7);
@@ -65,13 +67,6 @@ export function OrdersView() {
 
   // Adding New Order
   const [showAddModal, setShowAddModal] = useState(false);
-  const [form, setForm] = useState({
-    orderNumber: "",
-    customer: "",
-    status: "pending",
-    dueDate: "",
-    totalGross: 0,
-  });
 
   function formatToUSD(amount: number) {
     // TO DO - find api to exchange rates
@@ -87,29 +82,8 @@ export function OrdersView() {
     const data = await res.json();
     setOrders(data.items);
     setTotalPages(data.totalPages);
+    setAllElementsFound(data.total);
     setLoading(false);
-  }
-
-  async function addOrder() {
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    if (res.ok) {
-      setShowAddModal(false);
-      setForm({
-        orderNumber: "",
-        customer: "",
-        status: "new",
-        dueDate: "",
-        totalGross: 0,
-      });
-      fetchOrders();
-      toast.success("Zamówienie dodane!");
-    } else {
-      toast.error("Błąd dodawania zamówienia.");
-    }
   }
 
   async function deleteOrder() {
@@ -171,7 +145,7 @@ export function OrdersView() {
               <h2 className="text-lg font-medium text-gray-900">Zamówienia</h2>
               <div className="mt-2">
                 <div className="text-3xl font-bold text-gray-900">
-                  {orders.length}
+                  {allElementsFound}
                 </div>
                 <div className="text-sm text-gray-500">Wszystkich zamówień</div>
               </div>
@@ -205,10 +179,12 @@ export function OrdersView() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button className="gap-2 bg-purple-600 hover:bg-purple-700">
-                <Plus className="h-4 w-4" />
-                Dodaj Zamówienie
-              </Button>
+              {/* Add order button */}
+              <AddOrderDialog
+                isOpen={showAddModal}
+                setIsOpen={setShowAddModal}
+                onOrderAdded={fetchOrders}
+              />
             </div>
           </div>
         </CardHeader>

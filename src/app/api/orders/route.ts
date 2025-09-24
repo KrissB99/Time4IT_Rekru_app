@@ -28,7 +28,7 @@ export async function GET(req: Request) {
     const end = start + perPage;
     const items = db.orders.slice(start, end);
 
-    const body = { items, page, perPage, total, totalPages, hasPrev: page > 1, hasNext: page < totalPages };
+    const body = { items, page, perPage, total, totalPages, hasPrev: page > 1, hasNext: page < totalPages, foundTotal: total };
 
     const base = req.url.split("?")[0];
     const mk = (p: number) => `${base}?page=${p}&perPage=${perPage}`;

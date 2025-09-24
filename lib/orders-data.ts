@@ -28,8 +28,8 @@ export const db: { orders: Order[] } = {
 export function validateOrder(input: Partial<Order>) {
     const errors: Record<string, string> = {};
     const allowed = new Set(["new","processing","shipped","delivered","cancelled"]);
-    if (!input.orderNumber || input.orderNumber.length < 6) errors.orderNumber = "Wymagane, min. 6 znaków.";
     if (!input.customer || input.customer.trim().length === 0) errors.customer = "Wymagane.";
+    if (!input.orderNumber || input.orderNumber.length < 6) errors.orderNumber = "Wymagane, min. 6 znaków.";
     if (!input.status || !allowed.has(input.status)) errors.status = "Niedozwolona wartość.";
     if (!input.dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate)) errors.dueDate = "Format YYYY-MM-DD.";
     if (input.totalGross == null || Number(input.totalGross) <= 0) errors.totalGross = "Kwota > 0.";

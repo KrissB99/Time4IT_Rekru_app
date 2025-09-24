@@ -1,7 +1,5 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,50 +19,77 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
-
-interface OrderFormData {
-  clientName: string;
-  orderNumber: string;
-  status: string;
-  amount: string;
-}
+import { toast } from "sonner";
+import { validateOrder } from "@/lib/orders-data";
+import { OrderStatus } from "@/lib/orders-types";
 
 interface AddOrderDialogProps {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  onOrderAdded?: () => void; // callback to refresh orders
 }
 
-export function AddOrderDialog({ isOpen, setIsOpen }: AddOrderDialogProps) {
-  const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState<OrderFormData>({
-    clientName: "",
-    orderNumber: "",
-    status: "Nowe",
-    amount: "",
-  });
+interface formDataType {
+  orderNumber: string;
+  customer: string;
+  status: OrderStatus | undefined;
+  dueDate: string;
+  totalGross: string;
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
+export function AddOrderDialog({
+  isOpen,
+  setIsOpen,
+  onOrderAdded,
+}: AddOrderDialogProps) {
+  const [formData, setFormData] = useState<formDataType>({
+    orderNumber: "",
+    customer: "",
+    status: "new",
+    dueDate: "",
+    totalGross: "",
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Order data:", formData);
-    // Here you would typically send the data to your API
-    setOpen(false);
-    // Reset form
-    setFormData({
-      clientName: "",
-      orderNumber: "",
-      status: "Nowe",
-      amount: "",
+    setLoading(true);
+    const errors = validateOrder(formData);
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orderNumber: formData.orderNumber,
+        customer: formData.customer,
+        status: formData.status,
+        dueDate: formData.dueDate,
+        totalGross: Number(formData.totalGross),
+      }),
     });
+    setLoading(false);
+    if (res.ok) {
+      setIsOpen(false);
+      setFormData({
+        orderNumber: "",
+        customer: "",
+        status: "new",
+        dueDate: "",
+        totalGross: "",
+      });
+      if (onOrderAdded) onOrderAdded();
+    } else {
+      toast.error("Wystąpił błąd podczas dodawania zamówienia.");
+    }
   };
 
   const handleCancel = () => {
-    setOpen(false);
-    // Reset form
+    setIsOpen(false);
     setFormData({
-      clientName: "",
       orderNumber: "",
-      status: "Nowe",
-      amount: "",
+      customer: "",
+      status: "new",
+      dueDate: "",
+      totalGross: "",
     });
   };
 
@@ -79,8 +104,8 @@ export function AddOrderDialog({ isOpen, setIsOpen }: AddOrderDialogProps) {
       <DialogContent className="sm:max-w-[500px] p-0">
         <div className="relative">
           <button
-            onClick={() => setOpen(false)}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-10"
+            onClick={handleCancel}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
@@ -100,19 +125,18 @@ export function AddOrderDialog({ isOpen, setIsOpen }: AddOrderDialogProps) {
           <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
             <div className="space-y-2">
               <Label
-                htmlFor="clientName"
+                htmlFor="customer"
                 className="text-sm font-medium text-gray-700"
               >
                 Nazwa klienta
               </Label>
               <Input
-                id="clientName"
+                id="customer"
                 placeholder="Podaj nazwę klienta"
-                value={formData.clientName}
+                value={formData.customer}
                 onChange={(e) =>
-                  setFormData({ ...formData, clientName: e.target.value })
+                  setFormData({ ...formData, customer: e.target.value })
                 }
-                className="w-full"
                 required
               />
             </div>
@@ -127,7 +151,7 @@ export function AddOrderDialog({ isOpen, setIsOpen }: AddOrderDialogProps) {
                 </Label>
                 <Input
                   id="orderNumber"
-                  placeholder="Podaj Numer zamówienia"
+                  placeholder="Podaj numer zamówienia"
                   value={formData.orderNumber}
                   onChange={(e) =>
                     setFormData({ ...formData, orderNumber: e.target.value })
@@ -153,10 +177,10 @@ export function AddOrderDialog({ isOpen, setIsOpen }: AddOrderDialogProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Nowe">Nowe</SelectItem>
-                    <SelectItem value="W trakcie">W trakcie</SelectItem>
-                    <SelectItem value="Zakończone">Zakończone</SelectItem>
-                    <SelectItem value="Anulowane">Anulowane</SelectItem>
+                    <SelectItem value="new">Nowe</SelectItem>
+                    <SelectItem value="pending">W trakcie</SelectItem>
+                    <SelectItem value="completed">Zakończone</SelectItem>
+                    <SelectItem value="cancelled">Anulowane</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -164,17 +188,35 @@ export function AddOrderDialog({ isOpen, setIsOpen }: AddOrderDialogProps) {
 
             <div className="space-y-2">
               <Label
-                htmlFor="amount"
+                htmlFor="dueDate"
                 className="text-sm font-medium text-gray-700"
               >
-                Kwota
+                Data realizacji
               </Label>
               <Input
-                id="amount"
-                placeholder="Podaj kwotę brutto zamówienia"
-                value={formData.amount}
+                id="dueDate"
+                type="date"
+                value={formData.dueDate}
                 onChange={(e) =>
-                  setFormData({ ...formData, amount: e.target.value })
+                  setFormData({ ...formData, dueDate: e.target.value })
+                }
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label
+                htmlFor="totalGross"
+                className="text-sm font-medium text-gray-700"
+              >
+                Kwota brutto
+              </Label>
+              <Input
+                id="totalGross"
+                placeholder="Podaj kwotę brutto zamówienia"
+                value={formData.totalGross}
+                onChange={(e) =>
+                  setFormData({ ...formData, totalGross: e.target.value })
                 }
                 type="number"
                 step="0.01"
@@ -195,6 +237,7 @@ export function AddOrderDialog({ isOpen, setIsOpen }: AddOrderDialogProps) {
               <Button
                 type="submit"
                 className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                disabled={loading}
               >
                 Dodaj zamówienie
               </Button>
