@@ -54,7 +54,6 @@ export function AddOrderDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const errors = validateOrder(formData);
     const res = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -66,6 +65,7 @@ export function AddOrderDialog({
         totalGross: Number(formData.totalGross),
       }),
     });
+    console.log("Response:", res);
     setLoading(false);
     if (res.ok) {
       setIsOpen(false);
@@ -197,9 +197,9 @@ export function AddOrderDialog({
                 id="dueDate"
                 type="date"
                 value={formData.dueDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, dueDate: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ ...formData, dueDate: e.target.value });
+                }}
                 required
               />
             </div>
