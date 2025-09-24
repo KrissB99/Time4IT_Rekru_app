@@ -1,9 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
+// Shadcn UI components
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,19 +23,41 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, MoreVertical, Plus, Trash, Trash2 } from "lucide-react";
 
-import { Order } from "@/lib/orders-types";
+// Custom components
 import StatusBadge from "./statusBadge";
-import { formatDate } from "@/lib/helpers";
 import { Paggination } from "./paggination";
-import { toast } from "sonner";
 import RemoveAlert from "./removeDialog";
 
+// Internal types & helpers
+import { Order } from "@/lib/orders-types";
+import { formatDate } from "@/lib/helpers";
+
 export function OrdersView() {
+  const [loading, setLoading] = useState(true);
+
+  // Data
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [elementsPerPage, setElementsPerPage] = useState<number>(7);
   const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
+
+  // Filters and sorting
+  const [visibleColumns, setVisibleColumns] = useState<
+    Record<
+      string,
+      {
+        isVisible: boolean;
+        label: string;
+      }
+    >
+  >({
+    orderNumber: { isVisible: true, label: "Numer zamówienia" },
+    dueDate: { isVisible: true, label: "Data" },
+    status: { isVisible: true, label: "Status" },
+    totalGross: { isVisible: true, label: "Kwota" },
+    customer: { isVisible: true, label: "Kient" },
+  });
 
   // Remove dialog show
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
@@ -40,9 +73,17 @@ export function OrdersView() {
     totalGross: 0,
   });
 
+  function formatToUSD(amount: number) {
+    // TO DO - find api to exchange rates
+    // For now, we will use a fixed conversion rate of 1 USD = 0.27 PLN
+    return (amount * 0.27).toFixed(2);
+  }
+
   async function fetchOrders() {
     setLoading(true);
-    const res = await fetch(`/api/orders?page=${currentPage}&perPage=7`);
+    const res = await fetch(
+      `/api/orders?page=${currentPage}&perPage=${elementsPerPage}`
+    );
     const data = await res.json();
     setOrders(data.items);
     setTotalPages(data.totalPages);
@@ -138,15 +179,30 @@ export function OrdersView() {
             <div className="flex items-center gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2 bg-transparent">
+                  <Button variant="outline" className="gap-2">
                     Konfiguruj widok
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Pokaż wszystkie kolumny</DropdownMenuItem>
-                  <DropdownMenuItem>Ukryj status</DropdownMenuItem>
-                  <DropdownMenuItem>Ukryj kwotę</DropdownMenuItem>
+                  {Object.entries(visibleColumns).map(([column, colObj]) => (
+                    <DropdownMenuItem key={column}>
+                      <Checkbox
+                        id={column}
+                        checked={colObj.isVisible}
+                        onCheckedChange={() =>
+                          setVisibleColumns((prev) => ({
+                            ...prev,
+                            [column]: {
+                              ...prev[column],
+                              isVisible: !prev[column].isVisible,
+                            },
+                          }))
+                        }
+                      />
+                      {colObj.label}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button className="gap-2 bg-purple-600 hover:bg-purple-700">
@@ -159,77 +215,76 @@ export function OrdersView() {
         <CardContent>
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        //   checked={selectedOrders.length}
-                        onCheckedChange={handleSelectAll}
-                      />
-                      Numer zamówienia
-                      <ChevronDown className="h-4 w-4" />
-                    </div>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
-                    <div className="flex items-center gap-1">
-                      Data
-                      <ChevronDown className="h-4 w-4" />
-                    </div>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
-                    Status
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
-                    <div className="flex items-center gap-1">
-                      Kwota
-                      <ChevronDown className="h-4 w-4" />
-                    </div>
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-500 text-sm">
-                    Klient
-                  </th>
-                  <th className="w-12"></th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={
+                        selectedOrders.length === orders.length &&
+                        orders.length > 0
+                      }
+                      onCheckedChange={handleSelectAll}
+                      aria-label="Select all orders"
+                    />
+                  </TableHead>
+                  {Object.entries(visibleColumns).map(
+                    ([column, colObj]) =>
+                      colObj.isVisible && (
+                        <TableHead key={column}>
+                          <div className="flex items-center gap-3">
+                            {colObj.label}
+                            <ChevronDown className="h-4 w-4" />
+                          </div>
+                        </TableHead>
+                      )
+                  )}
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {orders.map((order) => (
-                  <tr
+                  <TableRow
                     key={order.id}
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3 min-w-[400px]">
-                        <Checkbox
-                          checked={selectedOrders.includes(order.id)}
-                          onCheckedChange={() => handleSelectOrder(order.id)}
-                        />
-                        <span className="text-sm font-normal text-gray-900">
-                          {order.orderNumber}
-                        </span>
-                      </div>
-                      {selectedOrders.includes(order.id) &&
-                        order.id === "1" && (
-                          <div className="mt-2 flex items-center gap-2 text-sm text-red-600">
-                            <Trash2 className="h-4 w-4" />
-                            Usuń zamówienie
-                          </div>
-                        )}
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-600">
-                      {formatDate(order.dueDate)}
-                    </td>
-                    <td className="py-4 px-4 text-sm">
-                      <StatusBadge status={order.status} />
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-900">
-                      ${order.totalGross.toFixed(2)}
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-600">
-                      {order.customer}
-                    </td>
-                    <td className="py-4 px-4">
+                    <TableCell className="w-12">
+                      <Checkbox
+                        checked={selectedOrders.includes(order.id)}
+                        onCheckedChange={() => handleSelectOrder(order.id)}
+                        aria-label={`Select order ${order.orderNumber}`}
+                      />
+                    </TableCell>
+                    {visibleColumns.orderNumber.isVisible && (
+                      <TableCell>
+                        <div className="flex items-center gap-3 min-w-[400px]">
+                          <span className="text-sm font-normal text-gray-900">
+                            {order.orderNumber}
+                          </span>
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.dueDate.isVisible && (
+                      <TableCell className="text-sm text-gray-600">
+                        {formatDate(order.dueDate)}
+                      </TableCell>
+                    )}
+                    {visibleColumns.status.isVisible && (
+                      <TableCell className="text-sm">
+                        <StatusBadge status={order.status} />
+                      </TableCell>
+                    )}
+                    {visibleColumns.totalGross.isVisible && (
+                      <TableCell className="text-sm text-gray-900">
+                        ${formatToUSD(order.totalGross)}
+                      </TableCell>
+                    )}
+                    {visibleColumns.customer.isVisible && (
+                      <TableCell className="text-sm text-gray-600">
+                        {order.customer}
+                      </TableCell>
+                    )}
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -253,11 +308,11 @@ export function OrdersView() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Pagination */}
