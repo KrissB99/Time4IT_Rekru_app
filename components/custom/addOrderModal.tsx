@@ -55,10 +55,13 @@ export function AddOrderDialog({
     totalGross: "",
   });
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrors({}); // clear previous errors
+
     const res = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -70,8 +73,9 @@ export function AddOrderDialog({
         totalGross: Number(formData.totalGross),
       }),
     });
+
     setLoading(false);
-    console.log(res);
+
     if (res.ok) {
       setIsOpen(false);
       setFormData({
@@ -83,6 +87,14 @@ export function AddOrderDialog({
       });
       if (onOrderAdded) onOrderAdded();
       toast.success("Zamówienie zostało dodane.");
+    } else if (res.status === 422) {
+      const data = await res.json();
+      // Map errors to fields
+      const fieldErrors: Record<string, string> = {};
+      data.fieldErrors.forEach((err: { field: string; message: string }) => {
+        fieldErrors[err.field] = err.message;
+      });
+      setErrors(fieldErrors);
     } else {
       toast.error("Wystąpił błąd podczas dodawania zamówienia.");
     }
@@ -144,8 +156,16 @@ export function AddOrderDialog({
                   setFormData({ ...formData, customer: e.target.value })
                 }
                 aria-label="Nazwa klienta"
-                required
               />
+              {errors.customer && (
+                <div
+                  className="text-xs text-red-600 mt-1"
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  {errors.customer}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -164,8 +184,16 @@ export function AddOrderDialog({
                     setFormData({ ...formData, orderNumber: e.target.value })
                   }
                   aria-label="Numer zamówienia"
-                  required
                 />
+                {errors.orderNumber && (
+                  <div
+                    className="text-xs text-red-600 mt-1"
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    {errors.orderNumber}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -209,8 +237,16 @@ export function AddOrderDialog({
                 onChange={(e) => {
                   setFormData({ ...formData, dueDate: e.target.value });
                 }}
-                required
               />
+              {errors.dueDate && (
+                <div
+                  className="text-xs text-red-600 mt-1"
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  {errors.dueDate}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -230,8 +266,16 @@ export function AddOrderDialog({
                 type="number"
                 step="0.01"
                 min="0"
-                required
               />
+              {errors.totalGross && (
+                <div
+                  className="text-xs text-red-600 mt-1"
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  {errors.totalGross}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4">
