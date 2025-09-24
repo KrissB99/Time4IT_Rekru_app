@@ -70,8 +70,8 @@ export function AddOrderDialog({
         totalGross: Number(formData.totalGross),
       }),
     });
-    console.log("Response:", res);
     setLoading(false);
+    console.log(res);
     if (res.ok) {
       setIsOpen(false);
       setFormData({
@@ -82,6 +82,7 @@ export function AddOrderDialog({
         totalGross: "",
       });
       if (onOrderAdded) onOrderAdded();
+      toast.success("Zamówienie zostało dodane.");
     } else {
       toast.error("Wystąpił błąd podczas dodawania zamówienia.");
     }
@@ -142,6 +143,7 @@ export function AddOrderDialog({
                 onChange={(e) =>
                   setFormData({ ...formData, customer: e.target.value })
                 }
+                aria-label="Nazwa klienta"
                 required
               />
             </div>
@@ -161,6 +163,7 @@ export function AddOrderDialog({
                   onChange={(e) =>
                     setFormData({ ...formData, orderNumber: e.target.value })
                   }
+                  aria-label="Numer zamówienia"
                   required
                 />
               </div>
@@ -174,7 +177,7 @@ export function AddOrderDialog({
                 </Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value) =>
+                  onValueChange={(value: OrderStatus) =>
                     setFormData({ ...formData, status: value })
                   }
                 >
@@ -183,8 +186,9 @@ export function AddOrderDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="new">Nowe</SelectItem>
-                    <SelectItem value="pending">W trakcie</SelectItem>
-                    <SelectItem value="completed">Zakończone</SelectItem>
+                    <SelectItem value="processing">W trakcie</SelectItem>
+                    <SelectItem value="shipped">Wysłane</SelectItem>
+                    <SelectItem value="delivered">Zakończone</SelectItem>
                     <SelectItem value="cancelled">Anulowane</SelectItem>
                   </SelectContent>
                 </Select>
@@ -214,7 +218,7 @@ export function AddOrderDialog({
                 htmlFor="totalGross"
                 className="text-sm font-medium text-gray-700"
               >
-                Kwota brutto
+                Kwota (PLN)
               </Label>
               <Input
                 id="totalGross"

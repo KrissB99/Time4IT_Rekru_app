@@ -45,6 +45,8 @@ export function OrdersView() {
   const [totalPages, setTotalPages] = useState(1);
 
   // Filters and sorting
+  const [sortColumn, setSortColumn] = useState<string>("dueDate");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [visibleColumns, setVisibleColumns] = useState<
     Record<
       string,
@@ -129,6 +131,35 @@ export function OrdersView() {
     }
   };
 
+  function handleSort(column: string) {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  }
+
+  const sortedOrders = [...orders].sort((a, b) => {
+    type OrderKey = keyof Order;
+    const key = sortColumn as OrderKey;
+    const aValue = a[key];
+    const bValue = b[key];
+
+    // For date, compare as Date objects
+    if (key === "dueDate") {
+      const aDate = new Date(aValue as string);
+      const bDate = new Date(bValue as string);
+      if (aDate < bDate) return sortDirection === "asc" ? -1 : 1;
+      if (aDate > bDate) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    }
+
+    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+    return 0;
+  });
+
   if (loading) return <div>Loading...</div>;
 
   return (
@@ -209,8 +240,14 @@ export function OrdersView() {
                       colObj.isVisible && (
                         <TableHead key={column}>
                           <div className="flex items-center gap-3">
-                            {colObj.label}
-                            <ChevronDown className="h-4 w-4" />
+                            <Button
+                              variant="ghost"
+                              onClick={() => handleSort(column)}
+                              className="gap-2"
+                            >
+                              {colObj.label}
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
                           </div>
                         </TableHead>
                       )
@@ -219,7 +256,7 @@ export function OrdersView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
+                {sortedOrders.map((order) => (
                   <TableRow
                     key={order.id}
                     className="border-b border-gray-100 hover:bg-gray-50"
