@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+
+// Components
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,15 +20,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { validateOrder } from "@/lib/orders-data";
+
+// Icons
+import { Plus, X } from "lucide-react";
+
+// Internal
 import { OrderStatus } from "@/lib/orders-types";
 
 interface AddOrderDialogProps {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  onOrderAdded?: () => void; // callback to refresh orders
+  onOrderAdded?: () => void;
 }
 
 interface formDataType {

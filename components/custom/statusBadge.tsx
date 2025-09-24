@@ -1,7 +1,12 @@
-import { Dot } from "lucide-react";
+// Components
 import { Badge } from "../ui/badge";
+
+// Internal
 import { Order } from "@/lib/orders-types";
 import { cn } from "@/lib/utils";
+
+// Icons
+import { Dot } from "lucide-react";
 
 interface StatusBadgeProps {
   status: Order["status"];

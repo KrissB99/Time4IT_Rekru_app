@@ -1,3 +1,4 @@
+// Components
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 export default function Header({

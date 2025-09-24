@@ -1,12 +1,9 @@
+// Components
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Trash2, X } from "lucide-react";
+// Icons
+import { Trash2 } from "lucide-react";
 
 interface RemoveAlertProps {
   deleteDialogOpen: boolean;

@@ -21,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, MoreVertical, Plus, Trash, Trash2 } from "lucide-react";
+import { ChevronDown, MoreVertical, Trash } from "lucide-react";
 
 // Custom components
 import StatusBadge from "./statusBadge";
